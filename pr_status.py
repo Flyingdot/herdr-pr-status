@@ -15,6 +15,20 @@ SOURCE = "flyingdot.pr-status"
 POLL_SECS = 120
 TTL_MS = POLL_SECS * 3 * 1000  # stale values vanish if the poller dies
 
+# Nerd Font octicons, one per state, so sidebar rules can color by state.
+ICONS = {
+    "open": "",  # nf-oct-git_pull_request
+    "draft": "",  # nf-oct-git_pull_request_draft
+    "merged": "",  # nf-oct-git_merge
+    "closed": "",  # nf-oct-git_pull_request_closed
+}
+APPROVED = ""  # nf-oct-check
+CHANGES_REQUESTED = ""  # nf-oct-x
+
+
+def label(state, ref, review=""):
+    return f"{ICONS[state]} {ref}" + (f" {review}" if review else "")
+
 
 def run(cmd, cwd=None, timeout=20):
     try:
@@ -37,8 +51,8 @@ def github(path):
         return None
     pr = json.loads(out)
     state = "draft" if pr["isDraft"] and pr["state"] == "OPEN" else pr["state"].lower()
-    review = {"APPROVED": " ✓", "CHANGES_REQUESTED": " ✗"}.get(pr.get("reviewDecision") or "", "")
-    return f"PR #{pr['number']} {state}{review}"
+    review = {"APPROVED": APPROVED, "CHANGES_REQUESTED": CHANGES_REQUESTED}.get(pr.get("reviewDecision") or "", "")
+    return label(state, f"#{pr['number']}", review)
 
 
 def gitlab(path):
@@ -49,8 +63,8 @@ def gitlab(path):
         return None
     # A branch can have several MRs: prefer an open one, then the most recently updated.
     mr = max(mrs, key=lambda m: (m["state"] == "opened", m["updated_at"]))
-    state = "draft" if mr.get("draft") and mr["state"] == "opened" else mr["state"].replace("opened", "open")
-    return f"MR !{mr['iid']} {state}"
+    state = "draft" if mr.get("draft") and mr["state"] == "opened" else {"opened": "open", "merged": "merged"}.get(mr["state"], "closed")
+    return label(state, f"!{mr['iid']}")
 
 
 def pr_label(path):
