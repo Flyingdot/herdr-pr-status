@@ -1,0 +1,28 @@
+id = "flyingdot.pr-status"
+name = "PR/MR Status"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Reports the open GitHub PR or GitLab MR of each Space's branch as the $pr token"
+platforms = ["macos", "linux"]
+
+# Long-running poller; it exits right away if one is already running.
+[[startup]]
+command = ["python3", "pr_status.py", "daemon"]
+
+[[events]]
+on = "workspace.focused"
+command = ["python3", "pr_status.py", "refresh"]
+
+[[events]]
+on = "workspace.created"
+command = ["python3", "pr_status.py", "refresh"]
+
+[[events]]
+on = "worktree.created"
+command = ["python3", "pr_status.py", "refresh"]
+
+[[actions]]
+id = "refresh"
+title = "PR/MR status: refresh all Spaces"
+contexts = ["workspace"]
+command = ["python3", "pr_status.py", "refresh", "--all"]
